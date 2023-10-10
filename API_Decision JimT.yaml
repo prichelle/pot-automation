@@ -1,0 +1,158 @@
+$integration: http://ibm.com/appconnect/integration/v2/integrationFile
+integration:
+  type: api
+  trigger-interfaces:
+    trigger-interface-1:
+      triggers:
+        createMystring:
+          assembly:
+            $ref: '#/integration/assemblies/assembly-1'
+          input-context:
+            data: mystring
+          output-context:
+            data: mystring
+      options:
+        resources:
+          - business-object: mystring
+            model:
+              $ref: '#/models/mystring'
+            triggers:
+              create: createMystring
+      type: api-trigger
+  action-interfaces:
+    action-interface-1:
+      type: api-action
+      business-object: request
+      connector-type: http
+      actions:
+        INVOKE: {}
+      account-name: Account 2
+  assemblies:
+    assembly-1:
+      assembly:
+        execute:
+          - custom-action:
+              name: HTTP Invoke method
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-1'
+              action: INVOKE
+              map:
+                customSchemas:
+                  properties.`requestHeaders`:
+                    type: object
+                    properties:
+                      Content-Type:
+                        type: string
+                      accept:
+                        type: string
+                mappings:
+                  - continue2xx:
+                      expression: 'false'
+                  - method:
+                      template: POST
+                  - requestBody:
+                      template: '{{$Request}}'
+                  - requestHeaders:
+                      mappings:
+                        - Content-Type:
+                            template: application/json
+                        - accept:
+                            template: application/json
+                  - url:
+                      template: >-
+                        https://ads-runtime-dev-demo-americas-10.automationcloud.ibm.com/ads/runtime/api/v1/deploymentSpaces/embedded/decisions/jgoodhue_us%2Fibm%2Fcom%2Fhello_world_decision%2Fgetting_started%2FgettingStartedDecisionService%2F1.0.0%2FgettingStartedDecisionService-1.0.0.jar/operations/daily-advice/execute
+                $map: http://ibm.com/appconnect/map/v1
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: flowDetails
+                    $ref: '#/flowDetails'
+          - response:
+              name: response-1
+              reply-maps:
+                - title: mystring successfully created
+                  status-code: 201
+                  map:
+                    $map: http://ibm.com/appconnect/map/v1
+                    input:
+                      - variable: Request
+                        $ref: '#/trigger/payload'
+                      - variable: HTTPInvokemethod
+                        $ref: '#/node-output/HTTP Invoke method/response/payload'
+                      - variable: HTTPInvokemethodMetadata
+                        $ref: '#/node-output/HTTP Invoke method/response'
+                      - variable: flowDetails
+                        $ref: '#/flowDetails'
+                    mappings:
+                      - name:
+                          template: '{{$HTTPInvokemethod.responseBody}}'
+                  input: []
+  name: API_Decision JimT
+models:
+  mystring:
+    name: mystring
+    properties:
+      name:
+        required: false
+        id: true
+        type: string
+      weather:
+        required: false
+        id: false
+        type:
+          rainForecast:
+            required: false
+            id: false
+            type: number
+          stormAlert:
+            required: false
+            id: false
+            type: boolean
+          temperature:
+            required: false
+            id: false
+            type: string
+    plural: mystring
+    description: ' '
+    operations:
+      create: '#/integration/assemblies/assembly-1'
+x-ibm-configuration:
+  gateway: datapower-api-gateway
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  cors:
+    enabled: true
+  assembly:
+    execute:
+      - invoke:
+          title: Invoke flow
+          version: 2.0.0
+          verb: keep
+          target-url: $(app-connect-designer-url)$(request.path)
+          follow-redirects: false
+          timeout: 60
+          parameter-control:
+            type: blacklist
+          header-control:
+            type: blacklist
+          inject-proxy-headers: true
+          username: $(app-connect-designer-username)
+          password: $(app-connect-designer-password)
+  properties:
+    app-connect-designer-url:
+      description: The URL of the App Connect Designer API endpoint.
+      encoded: false
+      value: >-
+        https://ace-designer-ai-designer-https-tools.jgrocp410cp4i20224-dcd557ed086a97d77c2297a53c025612-0000.us-east.containers.appdomain.cloud
+    app-connect-designer-username:
+      description: >-
+        The username required for basic authentication to the App Connect
+        Designer API endpoint.
+      value: 5jQhl0WJ
+    app-connect-designer-password:
+      description: >-
+        The password required for basic authentication to the App Connect
+        Designer API endpoint.
+      value: gVdb0W5IeU2HXi7rwu6D8Zh3pO1EYknq
